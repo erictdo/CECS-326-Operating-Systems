@@ -16,6 +16,7 @@ int main()
 {
   //Create Message Queue (ID)
   int qid = msgget(ftok(".", 'u'), IPC_EXCL | IPC_CREAT | 0600);
+  cout << "qid is " << qid << endl;
 
   //Create Message Buffer (from MsgBuffer.h)
   buffer msg;
@@ -29,10 +30,8 @@ int main()
   //Message Counter
   int msgCounter = 0;
 
-  //Get pid of B
+  //Initialize pid from ProbeB
   pid_t pidB;
-  msgrcv(qid, (struct msgbuf *)&msg, size, 100, 0);
-  pidB = atoi(msg.message);
 
   //Program loop for receiving message from Probes
   //  True = Receiving Data from at least 1 probe
@@ -42,57 +41,82 @@ int main()
   //Program Runs until all Probes terminate
   while (messageLoop)
   {
-    if (statusA)
+    //If there are any messages in the queue
+    if (msgrcv(qid, (struct msgbuf *)&msg, size, 0, 0) != -1)
     {
-      //Receive message
-      msgrcv(qid, (struct msgbuf *)&msg, size, alphaSeed, 0);
-      cout << getpid() << ": Message received from Probe A" << endl;
-      cout << msg.message << endl;
-      cout << endl;
+      cout << "TEST 4: " << msg.message << endl;
+      cout << "TEST 4: " << msg.mtype << endl;
 
-      //If Probe A is terminated, then set statusA to false
-      if (msg.message == "Probe A Terminated")
+      if (msg.mtype == dh_mtype) //Message is from DataHub, need to send to ProbeA
       {
-        statusA = false;
-      }
-      else //Probe A is still running
-      {
-        msg.mtype = 10;
         strncpy(msg.message, "Hello Probe A", size);
         msgsnd(qid, (struct msgbuf *)&msg, size, 0);
+        msgCounter++;
       }
-    }
-    if (statusB)
-    {
-      //Receive message
-      msgrcv(qid, (struct msgbuf *)&msg, size, betaSeed, 0);
-
-      //If msgCouner is greater than or equal to 10000,
-      //then terminate Probe B and set statusB to false
-      if (msgCounter >= 10000)
+      else
       {
-        cout << "Message counter has reached 10,000" << endl;
-        msgctl(qid, IPC_RMID, NULL);
-        force_patch(pidB);
-        statusB = false;
-      }
-    }
-    if (statusC)
-    {
-      //Receive message
-      msgrcv(qid, (struct msgbuf *)&msg, size, rhoSeed, 0);
+        if (msg.mtype == alphaSeed)
+        {
+          //Receive message from Probe C & print
+          cout << getpid() << "(Probe A): " << msg.message << endl;
+          cout << endl;
 
-      //If Probe C is terminated, then set statusC to false
-      if (msg.message == "Probe C Terminated") //Terminates when
+          //Send Acknowledgement to ProbeA
+          msg.mtype = dh_mtype;
+          strncpy(msg.message, "Hello Probe A", size);
+          msgsnd(qid, (struct msgbuf *)&msg, size, 0);
+          msgCounter++;
+        }
+        if (msg.mtype == betaSeed)
+        {
+          //Receive message from Probe B & print
+          cout << getpid() << "(Probe B): " << msg.message << endl;
+          cout << endl;
+          //If msgCounter is greater than or equal to 10000,
+          //then terminate Probe B and set statusB to false
+          if (msgCounter >= 10000)
+          {
+            cout << "Message counter has reached 10,000" << endl;
+            force_patch(pidB);
+            statusB = false;
+          }
+          else
+          {
+            msgCounter++;
+          }
+        }
+        if (msg.mtype == rhoSeed)
+        {
+          //Receive message from Probe C & print
+          cout << getpid() << "(Probe C): " << msg.message << endl;
+          cout << endl;
+          msgCounter++;
+        }
+        if (msg.mtype == 555) //Message saying Probe A has been terminated
+        {
+          statusA = false;
+        }
+        if (msg.mtype == 666) //Message is the pid from ProbeB
+        {
+          //Get pid of B
+          pidB = atoi(msg.message);
+          msgCounter++;
+        }
+        if (msg.mtype == 777) //Message saying Probe C has been terminated
+        {
+          statusC = false;
+        }
+
+        cout << "Counter: " << msgCounter << endl;
+      }
+      cout << "TEST A: " << statusA << endl;
+      cout << "TEST B: " << statusB << endl;
+      cout << "TEST C: " << statusC << endl;
+      if (!statusA && !statusB && !statusC)
       {
-        statusC = false;
+        messageLoop = false;
       }
     }
-    if (!statusA && !statusB && !statusC)
-    {
-      messageLoop = false;
-    }
-    msgCounter++;
   }
 
   //Delete Message Queue

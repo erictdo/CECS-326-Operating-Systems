@@ -25,12 +25,15 @@ int main()
   buffer msg;
   int size = sizeof(msg) - sizeof(long);
 
-  msg.mtype = 100;                                         // initiailize msg.mtype to 100
-  strncpy(msg.message, to_string(getpid()).c_str(), size); // copy the pid to the char array in the message
-  msgsnd(qid, (struct msgbuf *)&msg, size, 0);             // sends the message to the queue id
+  //Send PID to DataHub
+  msg.mtype = 666;
+  strncpy(msg.message, to_string(getpid()).c_str(), size);
+  msgsnd(qid, (struct msgbuf *)&msg, size, 0);
+  cout << "(" << getpid() << ") "
+       << "Message Sent: " << msg.message << " Type: " << msg.mtype << " " << endl;
 
   //Condition to terminate Probe B
-  bool terminateProbeB = true;
+  bool terminateProbeB = false;
 
   while (!terminateProbeB)
   {
@@ -38,8 +41,11 @@ int main()
     msg.mtype = betaSeed;          // Probe B magic seed given 257
     if (seedCheck % betaSeed == 0) // If divisible by seed, then it is valid
     {
-      strncpy(msg.message, "ProbeB", size);        // copy the ProbeB's pid to the char array in the message
-      msgsnd(qid, (struct msgbuf *)&msg, size, 0); // sends the message to the queue
+      msg.mtype = betaSeed;
+      strncpy(msg.message, "Hello DataHub, I'm Probe B", size);
+      msgsnd(qid, (struct msgbuf *)&msg, size, 0);
+      cout << "(" << getpid() << ") "
+           << "Message Sent: " << msg.message << " Type: " << msg.mtype << " " << endl;
     }
   }
   return 0;
