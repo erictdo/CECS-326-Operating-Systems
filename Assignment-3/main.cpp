@@ -56,7 +56,7 @@ int main()
           document.replace(foundIndex, target.size(), replacement);
           matchCount++;
         }
-        else if (matchCount != 0) //Bug injection. When matchCount > 0 and cannot find anymore, then exit.
+        else if (matchCount != 0) //Bug injection. When matchCount > 0 and cannot find anymore, exit the loop.
         {
           finding = false;
         }
@@ -68,7 +68,6 @@ int main()
         }
       }
       cout << "Matches Found: " << matchCount << endl;
-      cout << "New Text: " << document << endl;
       cout << endl;
       break;
     }
