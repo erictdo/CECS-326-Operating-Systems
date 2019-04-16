@@ -38,7 +38,7 @@ int main()
       int terminateValue = rand();
       cout << "Terminate Value: " << terminateValue << endl;
       //Terminates the program if the terminateValue is less than 100
-      if (terminateValue < 10000)
+      if (terminateValue < 100)
       {
         cout << "Number generated is < 100. Stopping A" << endl;
         terminateProbeA = true;
